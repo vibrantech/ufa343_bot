@@ -14,7 +14,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Retrieve API tokens
+# Retrieve API tokens from Render environment variables
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
@@ -23,13 +23,14 @@ ai_client = genai.Client(api_key=GEMINI_API_KEY)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Sends a greeting when /start is issued."""
+    # Using HTML tags (<b>) here so underscores like ufa343_bot won't break the parser
     welcome_text = (
-        "👋 Welcome to **ufa343_bot**!\n\n"
+        "👋 Welcome to <b>ufa343_bot</b>!\n\n"
         "I am an advanced AI Translator. Simply send me any text or phrase, "
         "and tell me what language you want it translated to, or just type standard text "
         "and I will instantly translate it to English by default!"
     )
-    await update.message.reply_text(welcome_text, parse_mode="Markdown")
+    await update.message.reply_text(welcome_text, parse_mode="HTML")
 
 async def handle_translation(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Processes incoming text and utilizes Gemini AI to translate it."""
@@ -46,7 +47,7 @@ async def handle_translation(update: Update, context: ContextTypes.DEFAULT_TYPE)
             f"If the user specifies a target language in their text (e.g., 'Translate this to Spanish: ...'), "
             f"translate it into that language. Otherwise, translate it into clear, natural English.\n\n"
             f"Text to translate:\n\"{user_text}\"\n\n"
-            f"Return ONLY the translated final text. Do not add conversational conversational remarks or extra quotes."
+            f"Return ONLY the translated final text. Do not add conversational remarks or extra quotes."
         )
 
         # Call Gemini AI model
