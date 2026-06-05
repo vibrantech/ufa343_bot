@@ -6,56 +6,56 @@ from telegram.ext import Application, CommandHandler, MessageHandler, filters, C
 from google import genai
 
 # 1. SETUP & CONFIGURATION
-# Load environment variables for local testing (Render ignores this and uses dashboard variables)
 load_dotenv()
 
-# Enable system logging so you can monitor bot activities in the Render logs
+# เปิดระบบการบันทึก Log ของระบบ
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
 )
 logger = logging.getLogger(__name__)
 
-# Retrieve API tokens securely from Render environment configurations
+# ดึงข้อมูล API Tokens จากค่า Environment Variables บน Render
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
-# Initialize the official Gemini AI Client
+# เริ่มต้นเปิดใช้งานโมเดล Gemini AI Client
 ai_client = genai.Client(api_key=GEMINI_API_KEY)
 
 
 # 2. BOT COMMAND HANDLERS
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Sends a welcoming greeting when a user types /start."""
-    # Using HTML tags (<b>) here so underscores like ufa343_bot won't break the parser
+    """ส่งข้อความต้อนรับเมื่อผู้ใช้พิมพ์คำสั่ง /start"""
+    # ข้อความต้อนรับภาษาไทยสำหรับตั้งค่าโฆษณา (ใช้ระบบ HTML ป้องกันสัญลักษณ์จม)
     welcome_text = (
-        "👋 Welcome to <b>ufa343_bot</b>!\n\n"
-        "I am an advanced AI Translator. Simply send me any text or phrase, "
-        "and tell me what language you want it translated to, or just type standard text "
-        "and I will instantly translate it to English by default!"
+        "👋 ยินดีต้อนรับสู่ <b>ufa343_bot</b>!\n\n"
+        "ฉันคือระบบแปลภาษาอัจฉริยะ AI ขั้นสูง 🤖✨\n"
+        "เพียงแค่คุณส่งข้อความหรือประโยคใด ๆ ที่ต้องการแปลมาให้ฉัน "
+        "พร้อมระบุภาษาที่ต้องการ (เช่น แปลเป็นภาษาไทย: ...) "
+        "หรือพิมพ์ข้อความทั่วไปเข้ามา ระบบจะแปลเป็นภาษาไทยให้คุณโดยอัตโนมัติทันที!"
     )
     await update.message.reply_text(welcome_text, parse_mode="HTML")
 
 
 # 3. AI TRANSLATION LOGIC
 async def handle_translation(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Processes incoming text and utilizes Gemini AI to translate it."""
+    """ประมวลผลข้อความที่ส่งเข้ามา และใช้ Gemini AI ในการแปลภาษา"""
     user_text = update.message.text
     
-    # Send an interim placeholder message to show the bot is actively processing
-    processing_msg = await update.message.reply_text("🔄 Processing AI Translation...")
+    # ส่งข้อความสถานะแจ้งให้ผู้ใช้ทราบว่าระบบกำลังทำงาน
+    processing_msg = await update.message.reply_text("🔄 ระบบ AI กำลังดำเนินการแปลภาษาของคุณ...")
 
     try:
-        # Prompt instructing the AI model to behave specifically as a precise translator engine
+        # คำสั่งสเปกสำหรับให้ AI ตรวจสอบและแปลภาษาต้นทางออกมาเป็นภาษาไทยอย่างเป็นธรรมชาติ
         prompt = (
             f"You are an expert AI translator engine operating inside a Telegram bot named ufa343_bot. "
             f"Analyze the following text, detect its source language, and translate it fluently. "
-            f"If the user specifies a target language in their text (e.g., 'Translate this to Spanish: ...'), "
-            f"translate it into that language. Otherwise, translate it into clear, natural English.\n\n"
+            f"If the user specifies a target language in their text (e.g., 'แปลเป็นภาษาญี่ปุ่น: ...'), "
+            f"translate it into that requested language. Otherwise, translate it into clear, natural, and fluent Thai (ภาษาไทย) by default.\n\n"
             f"Text to translate:\n\"{user_text}\"\n\n"
-            f"Return ONLY the translated final text. Do not add conversational remarks or extra quotes."
+            f"Return ONLY the translated final text. Do not add conversational remarks, explanations, or extra quotes."
         )
 
-        # Call the Gemini AI model (gemini-2.5-flash)
+        # เรียกใช้งานโมเดಲ Gemini AI (gemini-2.5-flash)
         response = ai_client.models.generate_content(
             model='gemini-2.5-flash',
             contents=prompt,
@@ -63,7 +63,7 @@ async def handle_translation(update: Update, context: ContextTypes.DEFAULT_TYPE)
         
         translated_result = response.text.strip()
 
-        # Update the placeholder message with the real answer
+        # อัปเดตเปลี่ยนข้อความจากเดิมที่เป็นสถานะกำลังโหลด ให้เป็นผลลัพธ์การแปลที่เสร็จสิ้น
         await context.bot.edit_message_text(
             chat_id=update.effective_chat.id,
             message_id=processing_msg.message_id,
@@ -75,25 +75,25 @@ async def handle_translation(update: Update, context: ContextTypes.DEFAULT_TYPE)
         await context.bot.edit_message_text(
             chat_id=update.effective_chat.id,
             message_id=processing_msg.message_id,
-            text="⚠️ Sorry, an error occurred while processing your AI translation. Please try again later."
+            text="⚠️ ขออภัยด้วยค่ะ เกิดข้อผิดพลาดในระบบระหว่างประอยประมวลผลแปลภาษา กรุณาลองใหม่อีกครั้งในภายหลัง"
         )
 
 
 # 4. APPLICATION INITIALIZATION
 def main() -> None:
-    """Starts the application background engine."""
+    """เริ่มต้นระบบการทำงานหลักของบอตเบื้องหลัง"""
     if not TELEGRAM_BOT_TOKEN:
         logger.critical("Missing TELEGRAM_BOT_TOKEN environment variable.")
         return
 
-    # Build the core telegram application
+    # สร้างแอปพลิเคชันเชื่อมโยงกับทาง Telegram API
     app = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
 
-    # Register workflow application handlers
+    # ลงทะเบียนคำสั่งและตัวดักจับข้อความ
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_translation))
 
-    # Drop pending updates on startup ensures the bot doesn't crash on backlogs
+    # คำสั่งเคลียร์คิวข้อความเก่าตกค้างเพื่อป้องกันระบบบอตค้างตอนรันเซิร์ฟเวอร์ใหม่
     logger.info("ufa343_bot is starting active polling...")
     app.run_polling(drop_pending_updates=True)
 
